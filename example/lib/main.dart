@@ -9,14 +9,13 @@ void main() {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-
   bool enableCustomEQ = false;
 
   @override
@@ -31,6 +30,16 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
+  final ButtonStyle flatButtonStyle = TextButton.styleFrom(
+    foregroundColor: Colors.white,
+    backgroundColor: Colors.blue,
+    minimumSize: const Size(88, 36),
+    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(2.0)),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -40,15 +49,14 @@ class _MyAppState extends State<MyApp> {
         ),
         body: ListView(
           children: [
-            SizedBox(height: 10.0),
+            const SizedBox(height: 10.0),
             Center(
               child: Builder(
                 builder: (context) {
-                  return FlatButton.icon(
-                    icon: Icon(Icons.equalizer),
-                    label: Text('Open device equalizer'),
-                    color: Colors.blue,
-                    textColor: Colors.white,
+                  return TextButton.icon(
+                    style: flatButtonStyle,
+                    icon: const Icon(Icons.equalizer),
+                    label: const Text('Open device equalizer'),
                     onPressed: () async {
                       try {
                         await EqualizerFlutter.open(0);
@@ -57,18 +65,18 @@ class _MyAppState extends State<MyApp> {
                           behavior: SnackBarBehavior.floating,
                           content: Text('${e.message}\n${e.details}'),
                         );
-                        Scaffold.of(context).showSnackBar(snackBar);
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(snackBar);
                       }
                     },
                   );
                 },
               ),
             ),
-            SizedBox(height: 10.0),
+            const SizedBox(height: 10.0),
             Container(
               color: Colors.grey.withOpacity(0.1),
               child: SwitchListTile(
-                title: Text('Custom Equalizer'),
+                title: const Text('Custom Equalizer'),
                 value: enableCustomEQ,
                 onChanged: (value) {
                   EqualizerFlutter.setEnabled(value);
@@ -78,13 +86,15 @@ class _MyAppState extends State<MyApp> {
                 },
               ),
             ),
-            SizedBox(height: 20,),
+            const SizedBox(
+              height: 20,
+            ),
             FutureBuilder<List<int>>(
               future: EqualizerFlutter.getBandLevelRange(),
               builder: (context, snapshot) {
                 return snapshot.connectionState == ConnectionState.done
                     ? CustomEQ(enableCustomEQ, snapshot.data!)
-                    : CircularProgressIndicator();
+                    : const CircularProgressIndicator();
               },
             ),
           ],
@@ -95,7 +105,7 @@ class _MyAppState extends State<MyApp> {
 }
 
 class CustomEQ extends StatefulWidget {
-  const CustomEQ(this.enabled, this.bandLevelRange);
+  const CustomEQ(this.enabled, this.bandLevelRange, {super.key});
 
   final bool enabled;
   final List<int> bandLevelRange;
@@ -126,22 +136,20 @@ class _CustomEQState extends State<CustomEQ> {
       builder: (context, snapshot) {
         return snapshot.connectionState == ConnectionState.done
             ? Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: snapshot.data!
-                  .map((freq) => _buildSliderBand(freq, bandId))
-                  .toList(),
-            ),
-            Divider(),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: _buildPresets(),
-            ),
-          ],
-        )
-            : CircularProgressIndicator();
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: snapshot.data!.map((freq) => _buildSliderBand(freq, bandId)).toList(),
+                  ),
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: _buildPresets(),
+                  ),
+                ],
+              )
+            : const CircularProgressIndicator();
       },
     );
   }
@@ -152,7 +160,7 @@ class _CustomEQState extends State<CustomEQ> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
+          SizedBox(
             height: 250,
             child: FutureBuilder<int>(
               future: EqualizerFlutter.getBandLevel(bandId),
@@ -161,10 +169,7 @@ class _CustomEQState extends State<CustomEQ> {
                 return RotatedBox(
                   quarterTurns: 1,
                   child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                        trackHeight: 1,
-                        trackShape: SliderCustomTrackShape()
-                    ),
+                    data: SliderTheme.of(context).copyWith(trackHeight: 1, trackShape: SliderCustomTrackShape()),
                     child: Center(
                       child: Slider(
                         min: min,
@@ -192,20 +197,20 @@ class _CustomEQState extends State<CustomEQ> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final presets = snapshot.data;
-          if (presets!.isEmpty) return Text('No presets available!');
+          if (presets!.isEmpty) return const Text('No presets available!');
           return DropdownButtonFormField(
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               labelText: 'Available Presets',
               border: OutlineInputBorder(),
             ),
             value: _selectedValue,
             onChanged: widget.enabled
                 ? (String? value) {
-              EqualizerFlutter.setPreset(value!);
-              setState(() {
-                _selectedValue = value;
-              });
-            }
+                    EqualizerFlutter.setPreset(value!);
+                    setState(() {
+                      _selectedValue = value;
+                    });
+                  }
                 : null,
             items: presets.map((String value) {
               return DropdownMenuItem<String>(
@@ -214,17 +219,18 @@ class _CustomEQState extends State<CustomEQ> {
               );
             }).toList(),
           );
-        } else if (snapshot.hasError)
+        } else if (snapshot.hasError) {
           return Text(snapshot.error.toString());
-        else
-          return CircularProgressIndicator();
+        } else {
+          return const CircularProgressIndicator();
+        }
       },
     );
   }
-
 }
 
 class SliderCustomTrackShape extends RoundedRectSliderTrackShape {
+  @override
   Rect getPreferredRect({
     required RenderBox parentBox,
     Offset offset = Offset.zero,
@@ -235,7 +241,7 @@ class SliderCustomTrackShape extends RoundedRectSliderTrackShape {
     final double? trackHeight = sliderTheme.trackHeight;
     final double trackLeft = offset.dx;
     final double trackTop = (parentBox.size.height) / 2;
-    final double trackWidth =  230;
+    const double trackWidth = 230;
     return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight!);
   }
 }
